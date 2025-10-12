@@ -5,6 +5,8 @@ Este proyecto es una introducción práctica a los **autoencoders**, entrenado d
 * 📓 Entrenamiento en `autoencoder-numpy.ipynb`
 * 🌐 Visualización y generación de caracteres en [GitHub Pages](https://matias-cisnero.github.io/autoencoder-visual-demo/)
 
+![Demo](demo-autoencoder.gif)
+
 ---
 
 ## 🔍 ¿Qué hace este proyecto?
