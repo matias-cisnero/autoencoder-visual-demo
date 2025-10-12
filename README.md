@@ -3,7 +3,7 @@
 Este proyecto es una introducción práctica a los **autoencoders**, entrenado desde cero con NumPy y visualizado en un frontend interactivo.
 
 * 📓 Entrenamiento en `autoencoder-numpy.ipynb`
-* 🌐 Visualización y generación de caracteres en [GitHub Pages](https://matias-cisnero.github.io/autoencoder-intro-ia/)
+* 🌐 Visualización y generación de caracteres en [GitHub Pages](https://matias-cisnero.github.io/autoencoder-visual-demo/)
 
 ---
 
@@ -70,7 +70,7 @@ Este proyecto es una introducción práctica a los **autoencoders**, entrenado d
 
 Visitalo directamente en:
 
-🔗 [https://matias-cisnero.github.io/autoencoder-intro-ia/](https://matias-cisnero.github.io/autoencoder-intro-ia/)
+🔗 [https://matias-cisnero.github.io/autoencoder-intro-ia/](https://matias-cisnero.github.io/autoencoder-visual-demo/)
 
 * Hacé clic en cualquier punto del gráfico latente para generar un nuevo carácter.
 * Probá recorrer el espacio y ver cómo cambia la salida del decodificador.
