@@ -3,490 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decodificador Visual</title>
-    <!-- Enlace a Tailwind CSS CDN para estilos responsivos y modernos -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Enlace a Google Fonts - Inter para una tipografía limpia y profesional -->
+    <title>Decodificador Visual | Espacio Latente</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Enlace a D3.js CDN para el gráfico interactivo del espacio latente -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <!-- Enlace a math.js CDN para operaciones matemáticas y matriciales -->
     <script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js"></script>
-    <style>
-        /* Configuración de fuente personalizada para todo el cuerpo */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Estilos para el spinner de carga, alineado con el diseño de Tailwind */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #3b82f6; /* Color azul de Tailwind */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        /* Estilos para el SVG del gráfico, con un diseño que se integra con Tailwind */
-        #chart-svg {
-            background-color: #f8fafc; /* Tailwind gray-50 */
-            border: 1px solid #e2e8f0; /* Tailwind gray-200 */
-            border-radius: 0.75rem; /* Tailwind rounded-xl */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Tailwind shadow-md */
-            cursor: crosshair; /* Cambia el cursor para indicar que se puede hacer clic en el gráfico */
-        }
-        /* Estilos para los grupos de puntos (contienen el texto de las etiquetas) */
-        .point-group text {
-            fill: #3b82f6; /* Tailwind blue-500 */
-            cursor: pointer; /* Cursor de puntero para indicar interactividad */
-            font-weight: 600; /* semibold */
-            font-size: 1rem; /* base */
-            transition: fill 0.2s ease-in-out, font-size 0.2s ease-in-out; /* Transición suave para efectos hover/seleccion */
-        }
-        /* Estilos al pasar el mouse sobre las etiquetas */
-        .point-group text:hover {
-            fill: #2563eb; /* Tailwind blue-600 */
-        }
-        /* Estilos para el texto de la etiqueta seleccionada */
-        .selected-text {
-            fill: #dc2626; /* Tailwind red-600 */
-            font-size: 1.25rem; /* Fuente más grande para el seleccionado */
-            font-weight: 800; /* Extra bold */
-        }
-        /* Estilos para el círculo que representa el punto arbitrario seleccionado */
-        .selected-arbitrary-point {
-            fill: #dc2626; /* Tailwind red-600 */
-            r: 8; /* Radio del círculo */
-            transition: r 0.2s ease-in-out; /* Transición suave para el radio */
-            pointer-events: none; /* Asegura que no interfiera con otros clics */
-        }
-        /* Estilos para los ejes del gráfico */
-        .axis path,
-        .axis line {
-            fill: none;
-            stroke: #cbd5e1; /* Tailwind slate-300 */
-            shape-rendering: crispEdges; /* Renderizado nítido de las líneas */
-        }
-        .axis text {
-            font-size: 0.875rem; /* Tailwind text-sm */
-            fill: #475569; /* Tailwind slate-700 */
-        }
-        /* Estilos para las celdas de la matriz decodificada */
-        .matrix-cell {
-            width: 30px; /* Ancho de la celda */
-            height: 30px; /* Alto de la celda */
-            border: 1px solid #e2e8f0; /* Borde de la celda */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .matrix-cell.active {
-            background-color: #000; /* Color para celdas "activas" (1) */
-        }
-        .matrix-cell.inactive {
-            background-color: #f0f0f0; /* Color para celdas "inactivas" (0) */
-        }
-    </style>
+    
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-8 rounded-xl shadow-lg max-w-4xl w-full border border-gray-200 relative"> <!-- Added relative for absolute positioning of the link -->
-        <h1 class="text-4xl font-extrabold text-gray-800 mb-6 text-center">Decodificador Visual</h1>
+<body>
+    <div class="card">
+        <h1>Decodificador Visual</h1>
 
-        <!-- Main content area: Graph and Results - side-by-side on md screens and up -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Left Column: Decoder Graph and Controls -->
-            <div id="decodeSection" class="main-section flex flex-col items-center"> <!-- Center items in this column -->
-                <h2 class="text-2xl font-bold text-gray-700 mb-4 text-center w-full">Gráfico de Espacio Latente</h2>
-                <div id="chart-container" class="mb-6 w-full flex justify-center">
-                    <svg id="chart-svg" class="w-full" style="height: 400px;"></svg>
-                </div>
-
-                <div class="mb-4 grid grid-cols-2 gap-4 w-full"> <!-- w-full to make inputs take full width of column -->
-                    <div>
-                        <label for="manualX" class="block text-gray-700 text-sm font-semibold mb-2">Valor X:</label>
-                        <input
-                            type="number"
-                            id="manualX"
-                            step="0.01"
-                            placeholder="Ej: 0.5"
-                            class="block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out"
-                        />
-                    </div>
-                    <div>
-                        <label for="manualY" class="block text-gray-700 text-sm font-semibold mb-2">Valor Y:</label>
-                        <input
-                            type="number"
-                            id="manualY"
-                            step="0.01"
-                            placeholder="Ej: -0.2"
-                            class="block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out"
-                        />
+        <main class="main-layout">
+            <div class="config-column">
+                <div class="input-group">
+                    <label>Espacio Latente (Interactivo)</label>
+                    <div class="diagram-area">
+                        <svg id="chart-svg"></svg>
                     </div>
                 </div>
+                
+                <div class="inputs-grid">
+                    <div class="input-group">
+                        <label for="manualX">Valor Latente X</label>
+                        <input type="number" id="manualX" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="input-group">
+                        <label for="manualY">Valor Latente Y</label>
+                        <input type="number" id="manualY" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
 
-                <button
-                    onclick="handleDecodePrediction()"
-                    class="w-full bg-gradient-to-r from-green-500 to-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:from-green-600 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition duration-200 ease-in-out flex items-center justify-center space-x-2"
-                >
+            <div class="display-column">
+                <div class="input-group" style="height: 100%;">
+                    <label>Reconstrucción Visual (5x5)</label>
+                    <div class="canvas-area">
+                        <div id="predictionMatrix"></div>
+                        <p id="predictionPlaceholder" class="placeholder-text">Selecciona un punto para decodificar</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="decodeBtn" onclick="handleDecodePrediction()">
                     <span id="decodeButtonText">Generar Decodificación</span>
                     <div id="decodeLoadingSpinner" class="spinner hidden"></div>
                 </button>
             </div>
 
-            <!-- Right Column: Prediction Results -->
-            <div id="predictionResultSection" class="mt-8 md:mt-0 p-6 bg-blue-50 rounded-lg shadow-inner flex flex-col items-center justify-center"> <!-- Added flex for centering, removed hidden for initial state to be managed by JS on load -->
-                <h2 class="text-xl font-semibold text-blue-800 mb-4 text-center">Resultado de la Predicción</h2>
-                <div id="predictionMatrix" class="grid grid-cols-5 gap-0.5 justify-center mx-auto" style="max-width: 170px;">
-                    <!-- Las celdas de la matriz decodificada se insertarán aquí -->
+            <div class="output-area">
+                <div id="resultado">Esperando entrada...</div>
+                <div id="errorContainer" class="hidden">
+                    <p id="errorMessage"></p>
                 </div>
-                <p id="predictionPlaceholder" class="text-center text-gray-500 mt-4 hidden">
-                    El resultado de la predicción se mostrará aquí.
-                </p>
             </div>
-        </div>
+        </main>
 
-        <!-- Contenedor para mostrar mensajes de error -->
-        <div id="errorContainer" class="mt-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 hidden" role="alert">
-            <p id="errorMessage" class="font-medium text-lg"></p>
-        </div>
-
-        <!-- GitHub Link in bottom-right corner -->
-        <a href="https://github.com/matias-cisnero/autoencoder-intro-ia" target="_blank" class="absolute bottom-4 right-4 text-blue-600 hover:underline text-sm" style="bottom: 8px;">
-            Repositorio de GitHub
-        </a>
-
-        <!-- Créditos in bottom-left corner -->
-        <span class="absolute left-4 text-gray-500 text-sm" style="bottom: 8px;">
-            Desarrollado por <strong>Matías Cisnero</strong>, miembro del PIA
-        </span>
+        <footer class="card-footer">
+            <span>Desarrollado por <strong>Matías Cisnero</strong></span>
+            <a href="https://github.com/matias-cisnero/autoencoder-intro-ia" target="_blank">Repositorio de GitHub</a>
+        </footer>
     </div>
 
-    <script>
-        // Variable global para almacenar los pesos del autoencoder
-        let pesosAutoencoder = null;
-
-        // Datos de los caracteres y sus coordenadas en el espacio latente (ACTUALIZADO)
-        const labels = ['@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_'];
-        const coords = [[16.18, 7.73], [0.22, 3.47], [4.56, 6.37], [5.43, 1.69], [4.71, 0.44], [1.26, 1.63], [2.4, 3.46], [6.55, 2.63], [5.61, 15.9], [7.6, -0.17], [0.66, 0.41], [0.84, 2.59], [0.82, 1.3], [0.61, 4.59], [-0.17, 7.15], [8.13, 3.04], [9.87, 10.26], [14.09, 7.8], [11.76, 11.6], [11.74, 3.21], [2.26, -0.17], [2.12, 6.48], [1.67, 10.79], [-0.1, 8.69], [-0.16, 5.62], [-0.06, 0.71], [1.65, 0.26], [5.48, 0.25], [-0.15, 0.37], [0.62, 0.27], [0.56, -0.15], [0.33, 0.06]];
-
-        // Combinar las etiquetas y las coordenadas en un formato fácil de usar para D3.js
-        const trainingLatentSpaceData = coords.map((coord, index) => ({
-            label: labels[index],
-            x: coord[0],
-            y: coord[1]
-        }));
-
-        let selectedArbitraryCircle = null; // Variable para almacenar la referencia al círculo de selección arbitraria en D3.js
-
-        /**
-         * Inicializa y dibuja el gráfico D3.js para mostrar el espacio latente.
-         * Esta función se llama al inicio y cada vez que la ventana se redimensiona
-         * para asegurar que el gráfico sea responsivo.
-         */
-        function initChart() {
-            const svg = d3.select("#chart-svg");
-            // Definir márgenes para el gráfico dentro del SVG
-            const margin = { top: 30, right: 30, bottom: 30, left: 30 };
-            // Calcular el ancho y alto del área de trazado del gráfico
-            const width = svg.node().getBoundingClientRect().width - margin.left - margin.right;
-            const height = svg.node().getBoundingClientRect().height - margin.top - margin.bottom;
-
-            // Limpia el SVG si ya tiene contenido, evitando duplicados al re-dibujar (importante para redimensionamiento)
-            svg.selectAll("*").remove();
-
-            // Crea un grupo (g) dentro del SVG para contener los elementos del gráfico y aplicar transformaciones
-            const g = svg.append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-
-            // Definir escalas lineales para los ejes X e Y, mapeando los datos a píxeles
-            const xScale = d3.scaleLinear()
-                .domain([-1.0, 17.0]) // Rango de datos para el eje X, con un pequeño padding
-                .range([0, width]); // Rango de píxeles para el eje X
-
-            const yScale = d3.scaleLinear()
-                .domain([-1.0, 17.0]) // Rango de datos para el eje Y, con un pequeño padding
-                .range([height, 0]); // Rango de píxeles para el eje Y (invertido para que el origen esté abajo a la izquierda)
-
-            // Dibujar los ejes X e Y (sin etiquetas de texto, como se solicitó)
-            g.append("g")
-                .attr("class", "x axis") // Clase para aplicar estilos CSS
-                .attr("transform", `translate(0,${height})`) // Posicionar el eje X en la parte inferior
-                .call(d3.axisBottom(xScale)); // Generar el eje inferior
-
-            g.append("g")
-                .attr("class", "y axis") // Clase para aplicar estilos CSS
-                .call(d3.axisLeft(yScale)); // Generar el eje izquierdo
-
-            // Añadir las etiquetas de los caracteres al gráfico
-            const points = g.selectAll(".point-group")
-                .data(trainingLatentSpaceData) // Enlazar los datos
-                .enter().append("g") // Crear un grupo SVG para cada punto
-                .attr("class", "point-group") // Clase para estilos
-                .attr("transform", d => `translate(${xScale(d.x)},${yScale(d.y)})`) // Posicionar cada grupo
-                .on("click", (event, d) => {
-                    // Remover cualquier selección anterior (texto resaltado y círculo arbitrario)
-                    g.selectAll(".point-group text").classed("selected-text", false);
-                    if (selectedArbitraryCircle) {
-                        selectedArbitraryCircle.remove();
-                        selectedArbitraryCircle = null;
-                    }
-
-                    // Marcar el texto de la etiqueta seleccionada (cambiar color y tamaño)
-                    d3.select(event.currentTarget).select("text").classed("selected-text", true);
-
-                    // Actualizar los campos de entrada con las coordenadas del punto clicado
-                    document.getElementById('manualX').value = d.x.toFixed(3);
-                    document.getElementById('manualY').value = d.y.toFixed(3);
-                    // Disparar la decodificación automáticamente al seleccionar un punto
-                    handleDecodePrediction();
-                });
-
-            // Añadir las etiquetas de texto a cada grupo de puntos
-            points.append("text")
-                .attr("text-anchor", "middle") // Centrar horizontalmente el texto
-                .attr("dominant-baseline", "middle") // Centrar verticalmente el texto
-                .text(d => d.label); // Mostrar la etiqueta del carácter
-
-            // Evento de clic en el SVG para deseleccionar puntos o seleccionar un punto arbitrario en el espacio latente
-            const chartSvg = document.getElementById('chart-svg');
-            chartSvg.addEventListener('click', function(event) {
-                // Obtener las coordenadas del clic relativas al elemento 'g' del gráfico
-                const [xCoordPixel, yCoordPixel] = d3.pointer(event, g.node());
-
-                // Convertir las coordenadas de píxeles a coordenadas de datos (valores del espacio latente)
-                const dataX = xScale.invert(xCoordPixel);
-                const dataY = yScale.invert(yCoordPixel);
-
-                // Verificar si el clic no fue dentro de un grupo de puntos existentes (una etiqueta)
-                // y si no fue en el círculo arbitrario ya existente
-                if (!event.target.closest('.point-group') && !event.target.classList.contains('selected-arbitrary-point')) {
-                    // Remover cualquier selección de texto anterior
-                    g.selectAll(".point-group text").classed("selected-text", false);
-                    // Remover el círculo arbitrario seleccionado anteriormente, si existe
-                    if (selectedArbitraryCircle) {
-                        selectedArbitraryCircle.remove();
-                        selectedArbitraryCircle = null;
-                    }
-
-                    // Agregar un nuevo círculo para representar el punto arbitrario seleccionado por el usuario
-                    selectedArbitraryCircle = g.append("circle")
-                        .attr("class", "selected-arbitrary-point") // Clase para aplicar estilos CSS
-                        .attr("cx", xCoordPixel) // Coordenada X en píxeles
-                        .attr("cy", yCoordPixel) // Coordenada Y en píxeles
-                        .attr("r", 5); // Radio inicial del círculo
-
-                    // Actualizar los campos de entrada con las coordenadas del punto arbitrario
-                    document.getElementById('manualX').value = dataX.toFixed(3);
-                    document.getElementById('manualY').value = dataY.toFixed(3);
-                    // Disparar la decodificación automáticamente
-                    handleDecodePrediction();
-                } else if (event.target.classList.contains('selected-arbitrary-point')) {
-                    // Si se hizo clic en el círculo arbitrario, no hacer nada más que mantenerlo seleccionado
-                    // y sus valores ya están en los inputs
-                }
-            });
-        }
-
-        /**
-         * Función sigmoide (activación) para las capas del autoencoder.
-         * @param {any} x - Entrada (número o matriz de math.js).
-         * @returns {any} Salida de la función sigmoide.
-         */
-        function gelu(x) {
-            return math.dotMultiply(0.5, math.dotMultiply(x, math.add(1, math.map(math.add(math.multiply(0.7978845608, x), math.multiply(0.0356774, math.dotPow(x, 3))), v => Math.tanh(v)))));
-        }
-
-        /**
-         * Implementación del decodificador del autoencoder en JavaScript.
-         * Corresponde a la función `decoder` de tu código Python.
-         * @param {Array<number[]>} V_latente - Vector latente de entrada.
-         * @param {Array<number[]>} w3 - Pesos de la tercera capa (primera del decodificador).
-         * @param {Array<number[]>} w4 - Pesos de la cuarta capa (segunda del decodificador).
-         * @param {Array<number>} b3 - Bias de la tercera capa.
-         * @param {Array<number>} b4 - Bias de la cuarta capa.
-         * @returns {Array<number[]>} La salida decodificada.
-         */
-        function decoder(V_latente, w3, w4, b3, b4) {
-            let V3 = gelu(math.add(math.multiply(V_latente, w3), b3));
-            let V4 = gelu(math.add(math.multiply(V3, w4), b4));
-            return V4;
-        }
-
-        /**
-         * Muestra una matriz binaria (0s y 1s) como una cuadrícula de celdas.
-         * Utilizado para visualizar la salida decodificada.
-         * @param {Array<number>} binaryOutput - Array de 0s y 1s.
-         * @param {string} targetElementId - ID del elemento HTML donde se renderizará la matriz.
-         * @param {number} cols - Número de columnas para la cuadrícula (ej: 5 para 5x5).
-         */
-        function mostrarMatriz(binaryOutput, targetElementId, cols = 5) {
-            const matrixDiv = document.getElementById(targetElementId);
-            if (!matrixDiv) {
-                console.error(`Elemento con ID ${targetElementId} no encontrado.`);
-                return;
-            }
-
-            const predictionResultSection = document.getElementById("predictionResultSection");
-            const predictionPlaceholder = document.getElementById("predictionPlaceholder");
-
-            matrixDiv.innerHTML = ""; // Limpia la matriz anterior
-
-            if (binaryOutput.length === 0) {
-                predictionPlaceholder.textContent = "No hay datos para mostrar la matriz.";
-                predictionPlaceholder.classList.remove('hidden');
-                matrixDiv.classList.add('hidden');
-                predictionResultSection.classList.remove('hidden');
-                return;
-            }
-
-            matrixDiv.classList.remove('hidden');
-            predictionPlaceholder.classList.add('hidden');
-            predictionResultSection.classList.remove('hidden');
-
-            matrixDiv.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
-
-            binaryOutput.forEach((val) => {
-                const cell = document.createElement("div");
-                cell.className = `matrix-cell rounded-sm ${val ? "active" : "inactive"}`;
-                matrixDiv.appendChild(cell);
-            });
-        }
-
-        /**
-         * Oculta el spinner de carga y restablece el texto del botón.
-         * @param {string} buttonTextId - ID del span que contiene el texto del botón.
-         * @param {string} spinnerId - ID del spinner.
-         * @param {string} defaultButtonText - Texto por defecto del botón.
-         * @param {string} parentSectionId - ID de la sección padre para encontrar el botón.
-         */
-        function hideLoadingState(buttonTextId, spinnerId, defaultButtonText, parentSectionId) {
-            const buttonTextSpan = document.getElementById(buttonTextId);
-            const spinnerElement = document.getElementById(spinnerId);
-            const mainButton = document.querySelector(`#${parentSectionId} button`);
-
-            if (buttonTextSpan) buttonTextSpan.textContent = defaultButtonText;
-            if (spinnerElement) spinnerElement.classList.add('hidden');
-            if (mainButton) mainButton.disabled = false;
-        }
-
-        /**
-         * Muestra el spinner de carga y deshabilita el botón.
-         * @param {string} buttonTextId - ID del span que contiene el texto del botón.
-         * @param {string} spinnerId - ID del spinner.
-         * @param {string} parentSectionId - ID de la sección padre para encontrar el botón.
-         */
-        function showLoadingState(buttonTextId, spinnerId, parentSectionId) {
-            const buttonTextSpan = document.getElementById(buttonTextId);
-            const spinnerElement = document.getElementById(spinnerId);
-            const mainButton = document.querySelector(`#${parentSectionId} button`);
-
-            if (buttonTextSpan) buttonTextSpan.textContent = 'Cargando...';
-            if (spinnerElement) spinnerElement.classList.remove('hidden');
-            if (mainButton) mainButton.disabled = true;
-        }
-
-        /**
-         * Muestra un mensaje de error en el contenedor de errores.
-         * @param {string} message - El mensaje de error a mostrar.
-         */
-        function showErrorMessage(message) {
-            const errorContainer = document.getElementById('errorContainer');
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorContainer.classList.remove('hidden');
-        }
-
-        /**
-         * Oculta el mensaje de error.
-         */
-        function hideErrorMessage() {
-            document.getElementById('errorContainer').classList.add('hidden');
-        }
-
-        /**
-         * Carga los archivos de pesos del autoencoder desde el directorio local.
-         */
-        async function cargarPesos() {
-            hideErrorMessage();
-
-            try {
-                const responseAutoencoder = await fetch('pesos_autoencoder.json');
-                if (!responseAutoencoder.ok) {
-                    throw new Error(`Error al cargar 'pesos_autoencoder.json': ${responseAutoencoder.statusText}`);
-                }
-                pesosAutoencoder = await responseAutoencoder.json();
-                console.log("Pesos Autoencoder cargados:", pesosAutoencoder);
-
-            } catch (error) {
-                showErrorMessage(`No se pudo cargar el archivo de pesos. Asegúrate de que 'pesos_autoencoder.json' está en la misma carpeta. Detalle: ${error.message}`);
-                console.error("Error al cargar pesos:", error);
-                pesosAutoencoder = null;
-            }
-        }
-
-        /**
-         * Maneja la lógica para la operación "Decodificador".
-         * Obtiene los valores X e Y de los inputs y realiza la decodificación localmente.
-         */
-        async function handleDecodePrediction() {
-            hideErrorMessage();
-            const manualX = document.getElementById('manualX').value;
-            const manualY = document.getElementById('manualY').value;
-
-            if (!pesosAutoencoder) {
-                showErrorMessage("Los pesos para la operación de decodificación no se han cargado. Recarga la página o verifica el archivo JSON.");
-                return;
-            }
-
-            showLoadingState('decodeButtonText', 'decodeLoadingSpinner', 'decodeSection');
-            const predictionResultSection = document.getElementById("predictionResultSection");
-            const predictionPlaceholder = document.getElementById("predictionPlaceholder");
-            const predictionMatrix = document.getElementById("predictionMatrix");
-
-            predictionResultSection.classList.add('hidden');
-            predictionMatrix.classList.add('hidden');
-            predictionPlaceholder.classList.add('hidden');
-
-            try {
-                if (manualX === '' || manualY === '' || isNaN(Number(manualX)) || isNaN(Number(manualY))) {
-                    showErrorMessage('Por favor, ingrese valores X e Y válidos para decodificar (números).');
-                    return;
-                }
-
-                const V_latente = math.matrix([[Number(manualX), Number(manualY)]]);
-
-                const salida = decoder(
-                    V_latente,
-                    math.matrix(pesosAutoencoder.w3),
-                    math.matrix(pesosAutoencoder.w4),
-                    math.matrix(pesosAutoencoder.b3),
-                    math.matrix(pesosAutoencoder.b4)
-                );
-
-                const binaryOutput = salida.toArray()[0].map(v => v > 0.5 ? 1 : 0);
-
-                mostrarMatriz(binaryOutput, "predictionMatrix", 5);
-
-            } catch (error) {
-                showErrorMessage(`Error durante la decodificación: ${error.message}`);
-                console.error("Error en la decodificación:", error);
-            } finally {
-                hideLoadingState('decodeButtonText', 'decodeLoadingSpinner', 'Generar Decodificación', 'decodeSection');
-            }
-        }
-
-        // Al cargar la página, cargamos los pesos y luego inicializamos el gráfico.
-        document.addEventListener('DOMContentLoaded', async () => {
-            await cargarPesos(); // Espera a que los pesos se carguen antes de continuar
-            initChart(); // Inicializa el gráfico
-        });
-
-        // Volver a dibujar el gráfico si la ventana se redimensiona, para asegurar que sea responsivo
-        window.addEventListener('resize', () => {
-            initChart();
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
